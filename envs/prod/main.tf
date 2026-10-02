@@ -1,3 +1,9 @@
+// Capa de aplicacion.
+//
+// La aplica CI con la identidad terraform-admin, que administra recursos pero
+// no puede otorgar roles IAM ni crear cuentas de servicio. Todo lo que implique
+// escalar privilegios vive en envs/bootstrap.
+
 locals {
   secret_ids = [
     "gemini-api-key",
@@ -29,25 +35,11 @@ module "api" {
   repository_id = "alejoavila-api"
   max_instances = var.max_instances
 
-  secret_accessor_ids = module.secrets.secret_ids
+  runtime_service_account_email = var.runtime_service_account_email
+  secret_accessor_ids           = module.secrets.secret_ids
 
   env = {
     NODE_ENV    = "production"
     GCP_PROJECT = var.project_id
   }
-}
-
-module "ci_identity" {
-  source = "../../modules/ci-identity"
-
-  project_id           = var.project_id
-  github_owner         = var.github_owner
-  allowed_repositories = var.allowed_repositories
-
-  deployer_roles = [
-    "roles/run.admin",               # desplegar revisiones de Cloud Run
-    "roles/artifactregistry.writer", # publicar imagenes
-    "roles/iam.serviceAccountUser",  # actuar como la SA de ejecucion
-    "roles/firebasehosting.admin",   # publicar el sitio estatico
-  ]
 }

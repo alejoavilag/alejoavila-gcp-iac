@@ -21,14 +21,7 @@ variable "github_owner" {
 }
 
 variable "service_accounts" {
-  description = <<-EOT
-    Identidades de CI. Cada entrada define una cuenta de servicio, los roles de
-    proyecto que recibe, y los repositorios que pueden suplantarla.
-
-    Separar identidades por proposito es el control central: la que despliega la
-    aplicacion no puede crear infraestructura, y la que crea infraestructura no
-    puede otorgar roles IAM.
-  EOT
+  description = "Identidades de CI. Cada entrada define una cuenta de servicio, sus roles de proyecto y los repositorios que pueden suplantarla."
 
   type = map(object({
     display_name = string

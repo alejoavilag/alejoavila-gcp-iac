@@ -1,9 +1,3 @@
-// Capa de aplicacion.
-//
-// La aplica CI con la identidad terraform-admin, que administra recursos pero
-// no puede otorgar roles IAM ni crear cuentas de servicio. Todo lo que implique
-// escalar privilegios vive en envs/bootstrap.
-
 locals {
   secret_ids = [
     "gemini-api-key",

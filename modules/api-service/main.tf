@@ -5,7 +5,6 @@ resource "google_artifact_registry_repository" "api" {
   format        = "DOCKER"
   description   = "Imagenes del API del portafolio"
 
-  # La capa gratuita da 0,5 GB. Sin limpieza, el historial de imagenes la agota.
   cleanup_policies {
     id     = "conservar-recientes"
     action = "KEEP"
@@ -23,9 +22,6 @@ resource "google_artifact_registry_repository" "api" {
   }
 }
 
-# Permiso a nivel de secreto, no de proyecto. Esta capa la aplica CI, y CI no
-# tiene permiso para otorgar roles de proyecto: la cuenta de ejecucion y sus
-# permisos de proyecto se definen en la capa de bootstrap.
 resource "google_secret_manager_secret_iam_member" "runtime" {
   for_each = toset(var.secret_accessor_ids)
 
@@ -60,8 +56,6 @@ resource "google_cloud_run_v2_service" "api" {
           cpu    = "1"
           memory = "512Mi"
         }
-        # Sin CPU fuera de peticion no se factura tiempo ocioso; es lo que hace
-        # viable el escalado a cero dentro de la capa gratuita.
         cpu_idle          = true
         startup_cpu_boost = true
       }
@@ -76,8 +70,6 @@ resource "google_cloud_run_v2_service" "api" {
     }
   }
 
-  # CI publica la imagen nueva en cada despliegue. Sin esto, Terraform la
-  # revertiria a la inicial en el siguiente apply.
   lifecycle {
     ignore_changes = [
       template[0].containers[0].image,

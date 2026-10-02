@@ -13,8 +13,4 @@ resource "google_firebase_hosting_site" "portfolio" {
   site_id  = var.hosting_site_id
 
   depends_on = [google_firebase_project.default]
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }

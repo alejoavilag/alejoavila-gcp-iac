@@ -126,11 +126,11 @@ Vive en la capa de bootstrap y usa el proveedor `google-beta`.
 **Agregar Firebase a un proyecto de GCP es irreversible**: no existe forma de
 quitarlo. Por eso el recurso lleva `prevent_destroy`.
 
-El sitio se llama `alejoavila-portfolio`, no `alejoavila-web`. Firebase crea
+El sitio se llama `alejoavila`, lo que da `alejoavila.web.app`. Firebase crea
 automáticamente un sitio por defecto con el id del proyecto, así que reutilizar
 ese nombre haría fallar el `apply`. La variable lo valida y rechaza ese valor.
 
-El shell debe apuntar a ese sitio con `"site": "alejoavila-portfolio"` en su
+El shell debe apuntar a ese sitio con `"site": "alejoavila"` en su
 `firebase.json`.
 
 ## Lo que NO gestiona Terraform

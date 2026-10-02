@@ -26,12 +26,17 @@ variable "api_service_name" {
 }
 
 variable "hosting_site_id" {
-  description = "Identificador del sitio de Firebase Hosting. Unico a nivel global y distinto del sitio por defecto que Firebase crea con el id del proyecto."
+  description = "Identificador del sitio de Firebase Hosting. Define el subdominio <site_id>.web.app y es unico a nivel global, no solo dentro del proyecto."
   type        = string
-  default     = "alejoavila-portfolio"
+  default     = "alejoavila"
 
   validation {
     condition     = var.hosting_site_id != "alejoavila-web"
     error_message = "No usar el id del proyecto: Firebase ya crea un sitio por defecto con ese nombre y el apply chocaria."
+  }
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$", var.hosting_site_id))
+    error_message = "Debe tener entre 3 y 30 caracteres, solo minusculas, numeros y guiones, sin empezar ni terminar en guion."
   }
 }

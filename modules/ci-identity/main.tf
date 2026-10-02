@@ -1,5 +1,4 @@
 locals {
-  # Producto cartesiano de cuenta x repositorio, para crear un binding por par.
   sa_repo_pairs = merge([
     for sa_key, sa in var.service_accounts : {
       for repo in sa.repositories :
@@ -35,8 +34,6 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.ref"              = "assertion.ref"
   }
 
-  # Primer filtro. Sin esta condicion, el flujo OIDC de CUALQUIER repositorio de
-  # GitHub en el mundo podria pedir credenciales de este proyecto.
   attribute_condition = "assertion.repository_owner == '${var.github_owner}'"
 
   oidc {
@@ -53,8 +50,6 @@ resource "google_service_account" "ci" {
   description  = each.value.description
 }
 
-# Segundo filtro, el que de verdad acota: solo los repositorios listados para
-# cada cuenta pueden suplantarla. Google lo verifica, no GitHub.
 resource "google_service_account_iam_member" "workload_identity_user" {
   for_each = local.sa_repo_pairs
 

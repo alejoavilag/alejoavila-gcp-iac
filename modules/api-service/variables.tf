@@ -14,7 +14,7 @@ variable "service_name" {
 }
 
 variable "runtime_service_account_email" {
-  description = "Identidad con la que corre el contenedor. Se crea en la capa de bootstrap, no aqui: crearla requeriria que CI pudiera administrar cuentas de servicio."
+  description = "Identidad con la que corre el contenedor. Se crea en la capa de bootstrap."
   type        = string
 
   validation {
@@ -34,13 +34,13 @@ variable "repository_id" {
 }
 
 variable "image" {
-  description = "Imagen inicial. CI la reemplaza en cada despliegue, por eso Terraform ignora sus cambios posteriores."
+  description = "Imagen inicial. CI la reemplaza en cada despliegue y Terraform ignora sus cambios posteriores."
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
 variable "max_instances" {
-  description = "Tope duro de instancias. Es el control de gasto: con escalado a cero, define el techo de costo."
+  description = "Tope duro de instancias. Con escalado a cero, define el techo de costo."
   type        = number
   default     = 2
 
@@ -63,7 +63,7 @@ variable "allow_public_access" {
 }
 
 variable "secret_accessor_ids" {
-  description = "Secretos de Secret Manager que la cuenta de ejecucion puede leer"
+  description = "Secretos que la cuenta de ejecucion puede leer"
   type        = list(string)
   default     = []
 }

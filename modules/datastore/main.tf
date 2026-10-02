@@ -4,7 +4,7 @@ variable "project_id" {
 }
 
 variable "location" {
-  description = "Ubicacion de Firestore. NO se puede cambiar despues de crear la base."
+  description = "Ubicacion de Firestore. No se puede cambiar despues de crear la base."
   type        = string
 }
 
@@ -24,10 +24,7 @@ resource "google_firestore_database" "default" {
   app_engine_integration_mode = "DISABLED"
 
   delete_protection_state = var.delete_protection ? "DELETE_PROTECTION_ENABLED" : "DELETE_PROTECTION_DISABLED"
-
-  # ABANDON deja la base intacta si se elimina del estado de Terraform. La
-  # ubicacion es permanente y los datos de analitica no son reconstruibles.
-  deletion_policy = "ABANDON"
+  deletion_policy         = "ABANDON"
 
   lifecycle {
     prevent_destroy = true

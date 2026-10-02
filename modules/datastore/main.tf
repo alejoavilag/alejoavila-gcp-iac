@@ -1,15 +1,15 @@
 variable "project_id" {
-  description = "Proyecto de GCP"
+  description = "GCP project"
   type        = string
 }
 
 variable "location" {
-  description = "Ubicacion de Firestore. No se puede cambiar despues de crear la base."
+  description = "Firestore location. Cannot be changed after the database is created."
   type        = string
 }
 
 variable "delete_protection" {
-  description = "Protege la base contra borrado accidental"
+  description = "Protects the database against accidental deletion"
   type        = bool
   default     = true
 }
@@ -32,11 +32,11 @@ resource "google_firestore_database" "default" {
 }
 
 output "database_name" {
-  description = "Nombre de la base de datos"
+  description = "Database name"
   value       = google_firestore_database.default.name
 }
 
 output "location" {
-  description = "Ubicacion efectiva de Firestore"
+  description = "Effective Firestore location"
   value       = google_firestore_database.default.location_id
 }

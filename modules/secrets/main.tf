@@ -1,10 +1,10 @@
 variable "project_id" {
-  description = "Proyecto de GCP"
+  description = "GCP project"
   type        = string
 }
 
 variable "secret_ids" {
-  description = "Identificadores de los secretos a crear. Solo el contenedor: los valores se cargan fuera de Terraform."
+  description = "Secret identifiers to create. Containers only: values are loaded outside Terraform."
   type        = list(string)
 }
 
@@ -24,6 +24,6 @@ resource "google_secret_manager_secret" "this" {
 }
 
 output "secret_ids" {
-  description = "Identificadores de los secretos creados"
+  description = "Identifiers of the created secrets"
   value       = [for s in google_secret_manager_secret.this : s.secret_id]
 }

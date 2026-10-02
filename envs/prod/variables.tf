@@ -1,27 +1,27 @@
 variable "project_id" {
-  description = "Proyecto de GCP"
+  description = "GCP project"
   type        = string
 }
 
 variable "region" {
-  description = "Region principal. us-east1 es Tier 1, elegible para capa gratuita, y la de menor latencia a Colombia entre las Tier 1."
+  description = "Primary region. us-east1 is Tier 1, free-tier eligible, and the lowest-latency Tier 1 region for Colombia."
   type        = string
   default     = "us-east1"
 }
 
 variable "firestore_location" {
-  description = "Ubicacion de Firestore. Permanente una vez creada la base."
+  description = "Firestore location. Permanent once the database is created."
   type        = string
   default     = "us-east1"
 }
 
 variable "runtime_service_account_email" {
-  description = "Cuenta de ejecucion del contenedor. Sale de la salida api_runtime_service_account de envs/bootstrap."
+  description = "Container runtime identity. Comes from the api_runtime_service_account output of envs/bootstrap."
   type        = string
 }
 
 variable "max_instances" {
-  description = "Tope duro de instancias de Cloud Run"
+  description = "Hard instance ceiling for Cloud Run"
   type        = number
   default     = 2
 }

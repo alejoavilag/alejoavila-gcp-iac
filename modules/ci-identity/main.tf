@@ -18,7 +18,7 @@ resource "google_iam_workload_identity_pool" "github" {
   project                   = var.project_id
   workload_identity_pool_id = var.pool_id
   display_name              = "GitHub Actions"
-  description               = "Federacion de identidad para CI sin llaves de larga vida"
+  description               = "Keyless CI authentication via OIDC"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {

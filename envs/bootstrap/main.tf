@@ -1,8 +1,8 @@
 resource "google_service_account" "api_runtime" {
   project      = var.project_id
   account_id   = "${var.api_service_name}-runtime"
-  display_name = "Ejecucion de ${var.api_service_name}"
-  description  = "Identidad del contenedor en Cloud Run. Permiso minimo."
+  display_name = "Runtime for ${var.api_service_name}"
+  description  = "Cloud Run container identity. Least privilege."
 }
 
 resource "google_project_iam_member" "api_runtime_firestore" {
@@ -19,8 +19,8 @@ module "ci_identity" {
 
   service_accounts = {
     github-deployer = {
-      display_name = "Despliegue de aplicacion"
-      description  = "Publica el shell en Hosting y revisiones en Cloud Run. Sin permisos de infraestructura."
+      display_name = "Application deployment"
+      description  = "Publishes the shell to Hosting and revisions to Cloud Run. No infrastructure permissions."
       roles = [
         "roles/run.admin",
         "roles/artifactregistry.writer",
@@ -35,8 +35,8 @@ module "ci_identity" {
     }
 
     terraform-admin = {
-      display_name = "Terraform de la capa de aplicacion"
-      description  = "Aplica envs/prod. Solo desde el repositorio de infraestructura."
+      display_name = "Application layer Terraform"
+      description  = "Applies envs/prod. Only from the infrastructure repository."
       roles = [
         "roles/run.admin",
         "roles/artifactregistry.admin",

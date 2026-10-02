@@ -1,14 +1,14 @@
 output "api_url" {
-  description = "URL de Cloud Run. El rewrite de Firebase Hosting apunta aqui."
+  description = "Cloud Run URL. The Firebase Hosting rewrite points here."
   value       = module.api.service_url
 }
 
 output "api_service_name" {
-  description = "Nombre del servicio para el rewrite de Firebase Hosting"
+  description = "Service name for the Firebase Hosting rewrite"
   value       = module.api.service_name
 }
 
 output "artifact_repository" {
-  description = "Destino de docker push"
+  description = "docker push target"
   value       = module.api.repository_url
 }

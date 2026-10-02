@@ -1,29 +1,29 @@
 output "workload_identity_provider" {
-  description = "Valor para workload_identity_provider en google-github-actions/auth. No es secreto: la seguridad viene del vinculo OIDC."
+  description = "Value for workload_identity_provider in google-github-actions/auth. Not a secret: security comes from the OIDC binding."
   value       = module.ci_identity.workload_identity_provider
 }
 
 output "deployer_service_account" {
-  description = "Identidad que despliega la aplicacion"
+  description = "Identity that deploys the application"
   value       = module.ci_identity.service_account_emails["github-deployer"]
 }
 
 output "terraform_admin_service_account" {
-  description = "Identidad que aplica envs/prod desde el repositorio de infraestructura"
+  description = "Identity that applies envs/prod from the infrastructure repository"
   value       = module.ci_identity.service_account_emails["terraform-admin"]
 }
 
 output "api_runtime_service_account" {
-  description = "Valor para runtime_service_account_email en envs/prod"
+  description = "Value for runtime_service_account_email in envs/prod"
   value       = google_service_account.api_runtime.email
 }
 
 output "hosting_site_id" {
-  description = "Sitio de Firebase Hosting al que despliega el shell"
+  description = "Firebase Hosting site the shell deploys to"
   value       = google_firebase_hosting_site.portfolio.site_id
 }
 
 output "hosting_default_url" {
-  description = "URL por defecto del sitio, antes de conectar el dominio propio"
+  description = "Default site URL, before attaching a custom domain"
   value       = google_firebase_hosting_site.portfolio.default_url
 }

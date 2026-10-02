@@ -18,13 +18,13 @@ concurrency:
 
 env:
   TF_VERSION: "1.16.5"
-  PROJECT_ID: alejoavila-web
+  GCP_PROJECT_ID: alejoavila-web
   WIF_PROVIDER: projects/1027646897233/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-  TF_SA: terraform-admin@alejoavila-web.iam.gserviceaccount.com
+  TF_SERVICE_ACCOUNT: terraform-admin@alejoavila-web.iam.gserviceaccount.com
 
 jobs:
-  verificar:
-    name: Formato, validacion y escaneo
+  verify:
+    name: Format, validate and scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,22 +33,22 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Formato
+      - name: Check formatting
         run: terraform fmt -check -recursive -diff
 
-      - name: Validar capa de aplicacion
+      - name: Validate application layer
         working-directory: envs/prod
         run: |
           terraform init -backend=false -input=false
           terraform validate
 
-      - name: Validar capa de bootstrap
+      - name: Validate bootstrap layer
         working-directory: envs/bootstrap
         run: |
           terraform init -backend=false -input=false
           terraform validate
 
-      - name: Escaneo de seguridad
+      - name: Security scan
         uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
         with:
           directory: .
@@ -56,9 +56,26 @@ jobs:
           quiet: true
           soft_fail: true
 
+  bootstrap-guard:
+    name: Flag bootstrap changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Warn when the bootstrap layer changed
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^envs/bootstrap/'; then
+            echo "::warning::This PR changes envs/bootstrap. CI does not apply that layer — run 'terraform apply' locally after merging, or the deployment will drift from the code."
+          else
+            echo "No changes under envs/bootstrap."
+          fi
+
   plan:
     name: Plan
-    needs: verificar
+    needs: verify
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -70,35 +87,35 @@ jobs:
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
-          project_id: ${{ env.PROJECT_ID }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.TF_SA }}
+          service_account: ${{ env.TF_SERVICE_ACCOUNT }}
 
-      - name: Plan de la capa de aplicacion
+      - name: Plan application layer
         id: plan
         working-directory: envs/prod
         run: |
           terraform init -input=false
           terraform plan -input=false -no-color -out=tfplan 2>&1 | tee plan.txt
-          echo "resumen=$(grep -E '^Plan:|^No changes' plan.txt | head -1)" >> "$GITHUB_OUTPUT"
+          echo "summary=$(grep -E '^Plan:|^No changes' plan.txt | head -1)" >> "$GITHUB_OUTPUT"
 
-      - name: Comentar el plan en el PR
+      - name: Comment plan on the pull request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');
             const plan = fs.readFileSync('envs/prod/plan.txt', 'utf8');
-            const recorte = plan.length > 60000 ? plan.slice(-60000) : plan;
+            const excerpt = plan.length > 60000 ? plan.slice(-60000) : plan;
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### Plan de Terraform\n\n\`${{ steps.plan.outputs.resumen }}\`\n\n<details><summary>Ver plan completo</summary>\n\n\`\`\`\n${recorte}\n\`\`\`\n\n</details>`
+              body: `### Terraform plan\n\n\`${{ steps.plan.outputs.summary }}\`\n\n<details><summary>Full plan</summary>\n\n\`\`\`\n${excerpt}\n\`\`\`\n\n</details>`
             });
 
   apply:
-    name: Aplicar
-    needs: verificar
+    name: Apply
+    needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: infraestructura
@@ -111,11 +128,11 @@ jobs:
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
-          project_id: ${{ env.PROJECT_ID }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.TF_SA }}
+          service_account: ${{ env.TF_SERVICE_ACCOUNT }}
 
-      - name: Aplicar capa de aplicacion
+      - name: Apply application layer
         working-directory: envs/prod
         run: |
           terraform init -input=false

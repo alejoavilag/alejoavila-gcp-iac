@@ -1,75 +1,75 @@
 variable "project_id" {
-  description = "Proyecto de GCP"
+  description = "GCP project"
   type        = string
 }
 
 variable "region" {
-  description = "Region de Cloud Run y Artifact Registry"
+  description = "Region for Cloud Run and Artifact Registry"
   type        = string
 }
 
 variable "service_name" {
-  description = "Nombre del servicio de Cloud Run"
+  description = "Cloud Run service name"
   type        = string
 }
 
 variable "runtime_service_account_email" {
-  description = "Identidad con la que corre el contenedor. Se crea en la capa de bootstrap."
+  description = "Identity the container runs as. Created in the bootstrap layer."
   type        = string
 
   validation {
     condition     = can(regex("^[^@]+@[^.]+\\.iam\\.gserviceaccount\\.com$", var.runtime_service_account_email))
-    error_message = "Debe ser el correo de una cuenta de servicio de GCP."
+    error_message = "Must be a GCP service account email."
   }
 
   validation {
     condition     = !can(regex("^[0-9]+-compute@developer\\.gserviceaccount\\.com$", var.runtime_service_account_email))
-    error_message = "No usar la cuenta de servicio por defecto de Compute: trae permisos de editor sobre todo el proyecto."
+    error_message = "Do not use the default Compute service account: it carries editor permissions across the whole project."
   }
 }
 
 variable "repository_id" {
-  description = "Nombre del repositorio de Artifact Registry"
+  description = "Artifact Registry repository name"
   type        = string
 }
 
 variable "image" {
-  description = "Imagen inicial. CI la reemplaza en cada despliegue y Terraform ignora sus cambios posteriores."
+  description = "Initial image. CI replaces it on every deploy and Terraform ignores later changes."
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
 variable "max_instances" {
-  description = "Tope duro de instancias. Con escalado a cero, define el techo de costo."
+  description = "Hard instance ceiling. With scale to zero, this defines the cost ceiling."
   type        = number
   default     = 2
 
   validation {
     condition     = var.max_instances >= 1 && var.max_instances <= 5
-    error_message = "Para mantenerse dentro de la capa gratuita el tope debe estar entre 1 y 5."
+    error_message = "To stay within the free tier the ceiling must be between 1 and 5."
   }
 }
 
 variable "keep_image_versions" {
-  description = "Cuantas imagenes conservar en Artifact Registry. La capa gratuita da 0,5 GB."
+  description = "How many images to retain in Artifact Registry. The free tier allows 0.5 GB."
   type        = number
   default     = 5
 }
 
 variable "allow_public_access" {
-  description = "Permite invocaciones sin autenticar. Necesario para que el rewrite de Firebase Hosting alcance el servicio."
+  description = "Allow unauthenticated invocations. Required for the Firebase Hosting rewrite to reach the service."
   type        = bool
   default     = true
 }
 
 variable "secret_accessor_ids" {
-  description = "Secretos que la cuenta de ejecucion puede leer"
+  description = "Secrets the runtime identity is allowed to read"
   type        = list(string)
   default     = []
 }
 
 variable "env" {
-  description = "Variables de entorno no sensibles del contenedor"
+  description = "Non-sensitive container environment variables"
   type        = map(string)
   default     = {}
 }

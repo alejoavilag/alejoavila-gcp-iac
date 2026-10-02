@@ -1,27 +1,27 @@
 variable "project_id" {
-  description = "Proyecto de GCP donde vive la federacion"
+  description = "GCP project that hosts the federation"
   type        = string
 }
 
 variable "pool_id" {
-  description = "Identificador del Workload Identity Pool"
+  description = "Workload Identity Pool identifier"
   type        = string
   default     = "github-pool"
 }
 
 variable "provider_id" {
-  description = "Identificador del proveedor OIDC dentro del pool"
+  description = "OIDC provider identifier inside the pool"
   type        = string
   default     = "github-provider"
 }
 
 variable "github_owner" {
-  description = "Cuenta u organizacion de GitHub autorizada"
+  description = "GitHub account or organization allowed to authenticate"
   type        = string
 }
 
 variable "service_accounts" {
-  description = "Identidades de CI. Cada entrada define una cuenta de servicio, sus roles de proyecto y los repositorios que pueden suplantarla."
+  description = "CI identities. Each entry defines a service account, its project roles, and the repositories allowed to impersonate it."
 
   type = map(object({
     display_name = string
@@ -34,7 +34,7 @@ variable "service_accounts" {
     condition = alltrue([
       for k, v in var.service_accounts : length(v.repositories) > 0
     ])
-    error_message = "Cada cuenta de servicio debe autorizar al menos un repositorio; una lista vacia la deja inutilizable."
+    error_message = "Every service account must authorize at least one repository; an empty list makes it unusable."
   }
 
   validation {
@@ -43,7 +43,7 @@ variable "service_accounts" {
         for r in v.repositories : can(regex("^[^/]+/[^/]+$", r))
       ]
     ]))
-    error_message = "Cada repositorio debe tener el formato owner/repo."
+    error_message = "Each repository must use the owner/repo format."
   }
 
   validation {
@@ -57,6 +57,6 @@ variable "service_accounts" {
         ], r)
       ]
     ]))
-    error_message = "Ninguna identidad de CI puede recibir owner, editor ni permisos para otorgar IAM: con ellos podria escalarse a propietario del proyecto."
+    error_message = "CI identities must not be granted owner, editor, or IAM-granting roles: any of them allows self-escalation to project owner."
   }
 }

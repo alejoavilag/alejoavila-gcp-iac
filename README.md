@@ -11,6 +11,7 @@ envs/bootstrap/   se aplica A MANO, con credenciales de usuario
   Workload Identity Federation
   Cuentas de servicio y sus roles de proyecto
   Acceso al bucket de estado
+  Proyecto de Firebase y sitio de Hosting
 
 envs/prod/        la aplica CI con la identidad terraform-admin
   Artifact Registry
@@ -118,6 +119,20 @@ terraform apply
 - Protección de la rama `master`: exigir pull request, exigir que pasen los
   checks, bloquear force-push.
 
+## Firebase Hosting
+
+Vive en la capa de bootstrap y usa el proveedor `google-beta`.
+
+**Agregar Firebase a un proyecto de GCP es irreversible**: no existe forma de
+quitarlo. Por eso el recurso lleva `prevent_destroy`.
+
+El sitio se llama `alejoavila`, lo que da `alejoavila.web.app`. Firebase crea
+automáticamente un sitio por defecto con el id del proyecto, así que reutilizar
+ese nombre haría fallar el `apply`. La variable lo valida y rechaza ese valor.
+
+El shell debe apuntar a ese sitio con `"site": "alejoavila"` en su
+`firebase.json`.
+
 ## Lo que NO gestiona Terraform
 
 Creado en el bootstrap manual y fuera del ciclo de vida de este código:
@@ -127,3 +142,4 @@ Creado en el bootstrap manual y fuera del ciclo de vida de este código:
 - La alerta de presupuesto
 - La habilitación inicial de APIs
 - Los valores de los secretos
+- Los registros DNS del dominio propio, que viven en el registrador

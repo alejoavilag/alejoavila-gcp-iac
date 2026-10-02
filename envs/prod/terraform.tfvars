@@ -1,10 +1,5 @@
-project_id   = "alejoavila-web"
-region       = "us-east1"
-github_owner = "alejoavilag"
+project_id = "alejoavila-web"
+region     = "us-east1"
 
-allowed_repositories = [
-  "alejoavilag/shell-alejoavila-web-ui",
-  "alejoavilag/alejoavila-chat-wc-lib-web-ui",
-  "alejoavilag/alejoavila-api-mngr",
-  "alejoavilag/alejoavila-gcp-iac",
-]
+# Salida api_runtime_service_account de envs/bootstrap
+runtime_service_account_email = "alejoavila-api-runtime@alejoavila-web.iam.gserviceaccount.com"

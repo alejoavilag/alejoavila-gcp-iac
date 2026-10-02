@@ -23,26 +23,16 @@ resource "google_artifact_registry_repository" "api" {
   }
 }
 
-resource "google_service_account" "runtime" {
-  project      = var.project_id
-  account_id   = "${var.service_name}-runtime"
-  display_name = "Ejecucion de ${var.service_name}"
-  description  = "Identidad del contenedor en Cloud Run. Permiso minimo, nunca la SA por defecto de Compute."
-}
-
-resource "google_project_iam_member" "runtime_firestore" {
-  project = var.project_id
-  role    = "roles/datastore.user"
-  member  = "serviceAccount:${google_service_account.runtime.email}"
-}
-
+# Permiso a nivel de secreto, no de proyecto. Esta capa la aplica CI, y CI no
+# tiene permiso para otorgar roles de proyecto: la cuenta de ejecucion y sus
+# permisos de proyecto se definen en la capa de bootstrap.
 resource "google_secret_manager_secret_iam_member" "runtime" {
   for_each = toset(var.secret_accessor_ids)
 
   project   = var.project_id
   secret_id = each.value
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.runtime.email}"
+  member    = "serviceAccount:${var.runtime_service_account_email}"
 }
 
 resource "google_cloud_run_v2_service" "api" {
@@ -53,7 +43,7 @@ resource "google_cloud_run_v2_service" "api" {
   deletion_protection = false
 
   template {
-    service_account                  = google_service_account.runtime.email
+    service_account                  = var.runtime_service_account_email
     max_instance_request_concurrency = 80
     timeout                          = "30s"
 

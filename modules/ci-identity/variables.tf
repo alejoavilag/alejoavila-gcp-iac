@@ -20,28 +20,50 @@ variable "github_owner" {
   type        = string
 }
 
-variable "allowed_repositories" {
-  description = "Repositorios que pueden desplegar, en formato owner/repo"
-  type        = list(string)
+variable "service_accounts" {
+  description = <<-EOT
+    Identidades de CI. Cada entrada define una cuenta de servicio, los roles de
+    proyecto que recibe, y los repositorios que pueden suplantarla.
+
+    Separar identidades por proposito es el control central: la que despliega la
+    aplicacion no puede crear infraestructura, y la que crea infraestructura no
+    puede otorgar roles IAM.
+  EOT
+
+  type = map(object({
+    display_name = string
+    description  = optional(string, "")
+    roles        = list(string)
+    repositories = list(string)
+  }))
 
   validation {
-    condition     = length(var.allowed_repositories) > 0
-    error_message = "Debe autorizarse al menos un repositorio; una lista vacia dejaria la cuenta de servicio inutilizable."
+    condition = alltrue([
+      for k, v in var.service_accounts : length(v.repositories) > 0
+    ])
+    error_message = "Cada cuenta de servicio debe autorizar al menos un repositorio; una lista vacia la deja inutilizable."
   }
 
   validation {
-    condition     = alltrue([for r in var.allowed_repositories : can(regex("^[^/]+/[^/]+$", r))])
+    condition = alltrue(flatten([
+      for k, v in var.service_accounts : [
+        for r in v.repositories : can(regex("^[^/]+/[^/]+$", r))
+      ]
+    ]))
     error_message = "Cada repositorio debe tener el formato owner/repo."
   }
-}
 
-variable "deployer_roles" {
-  description = "Roles que se otorgan a la cuenta de servicio de despliegue"
-  type        = list(string)
-}
-
-variable "service_account_id" {
-  description = "Identificador de la cuenta de servicio de despliegue"
-  type        = string
-  default     = "github-deployer"
+  validation {
+    condition = alltrue(flatten([
+      for k, v in var.service_accounts : [
+        for r in v.roles : !contains([
+          "roles/owner",
+          "roles/editor",
+          "roles/resourcemanager.projectIamAdmin",
+          "roles/iam.securityAdmin",
+        ], r)
+      ]
+    ]))
+    error_message = "Ninguna identidad de CI puede recibir owner, editor ni permisos para otorgar IAM: con ellos podria escalarse a propietario del proyecto."
+  }
 }

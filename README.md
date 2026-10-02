@@ -4,51 +4,68 @@ Infraestructura del portafolio [alejoavila.com](https://alejoavila.com) como
 código, en Terraform sobre Google Cloud. Diseñada para operar dentro de la capa
 gratuita: **costo objetivo 0 USD/mes.**
 
-## Estructura
+## Dos capas, y por qué
 
 ```
-modules/
-├── ci-identity/    Workload Identity Federation + SA de despliegue
-├── api-service/    Artifact Registry + Cloud Run + SA de ejecución
-├── datastore/      Firestore en modo nativo
-└── secrets/        Contenedores de Secret Manager
-envs/
-└── prod/           Composición del entorno productivo
+envs/bootstrap/   se aplica A MANO, con credenciales de usuario
+  Workload Identity Federation
+  Cuentas de servicio y sus roles de proyecto
+  Acceso al bucket de estado
+
+envs/prod/        la aplica CI con la identidad terraform-admin
+  Artifact Registry
+  Cloud Run
+  Firestore
+  Secret Manager
 ```
 
-Los módulos no conocen el entorno; `envs/prod` los compone. Agregar un entorno
-es copiar ese directorio, cambiar el `prefix` del backend y los valores de
-`terraform.tfvars`.
+La separación no es organizativa, es de seguridad. Para que Terraform cree
+cuentas de servicio y otorgue roles de proyecto necesita
+`roles/iam.serviceAccountAdmin` y `roles/resourcemanager.projectIamAdmin`. **Una
+identidad que puede otorgar roles IAM puede otorgarse a sí misma el rol de
+propietario.** Si CI tuviera esos permisos, cualquiera capaz de inyectar un
+commit tendría acceso efectivo de propietario del proyecto.
 
-> **Un solo entorno a propósito.** La capa gratuita de Cloud Run es por cuenta de
-> facturación, no por servicio: un segundo entorno activo competiría por la misma
-> cuota y duplicaría el riesgo de superarla. El código ya soporta varios; se
-> añadirán cuando haya una razón real.
+Al concentrar identidades y roles en `bootstrap`, la identidad que usa CI
+administra recursos pero no puede otorgar permisos. No hay ruta de escalamiento.
 
-## Decisiones de seguridad
+El módulo `ci-identity` lo refuerza con una validación que rechaza `owner`,
+`editor`, `projectIamAdmin` y `securityAdmin` en cualquier identidad de CI: el
+error salta en `plan`, antes de tocar nada.
 
-**Sin llaves de servicio.** GitHub Actions se autentica por OIDC mediante
-Workload Identity Federation. No existe ningún JSON de credenciales, ni en el
-repositorio ni en los secretos de GitHub.
+## Identidades
 
-**Doble filtro sobre quién puede desplegar.** El proveedor OIDC exige que el
-dueño del repositorio coincida (`attribute_condition`), y el binding de
-`workloadIdentityUser` restringe además a la lista exacta de repositorios. Sin la
-condición del proveedor, cualquier repositorio de GitHub del mundo podría pedir
-credenciales de este proyecto.
+| Cuenta | Puede | Repositorios autorizados |
+|---|---|---|
+| `github-deployer` | Publicar en Hosting y desplegar revisiones de Cloud Run | shell, chat-widget, api |
+| `terraform-admin` | Aplicar `envs/prod` | solo `alejoavila-gcp-iac` |
+| `alejoavila-api-runtime` | Escribir en Firestore y leer sus secretos | ninguno: es la identidad del contenedor |
+
+**Sin llaves de servicio.** La autenticación es por OIDC vía Workload Identity
+Federation: GitHub presenta un token de una hora y Google lo canjea. No existe
+ningún JSON de credenciales, ni en los repositorios ni en los secretos de GitHub.
+
+**El filtro es doble.** El proveedor OIDC exige que coincida el dueño del
+repositorio; el binding de `workloadIdentityUser` restringe además a la lista
+exacta de repositorios por identidad. Lo verifica Google, no GitHub: aunque
+alguien comprometiera el repositorio del shell, no podría tocar la
+infraestructura.
+
+## Otras decisiones de seguridad
 
 **Los valores de los secretos nunca pasan por Terraform.** El módulo `secrets`
-crea únicamente el contenedor. Un `google_secret_manager_secret_version` dejaría
-el valor en texto plano dentro del estado, que vive en un bucket de GCS. Los
-valores se cargan aparte:
+crea solo el contenedor. Un `google_secret_manager_secret_version` dejaría el
+valor en texto plano dentro del estado, que vive en un bucket de GCS:
 
 ```bash
 echo -n "VALOR" | gcloud secrets versions add gemini-api-key --data-file=-
 ```
 
-**Permiso mínimo.** El contenedor corre con una cuenta de servicio dedicada que
-solo puede escribir en Firestore y leer sus tres secretos — nunca la cuenta por
-defecto de Compute, que trae permisos de editor sobre todo el proyecto.
+**El acceso al estado está acotado al bucket**, no a todo Cloud Storage del
+proyecto.
+
+**El contenedor nunca usa la cuenta por defecto de Compute**, que trae permisos
+de editor. El módulo lo valida y falla si se intenta.
 
 ## Control de gasto
 
@@ -64,39 +81,49 @@ defecto de Compute, que trae permisos de editor sobre todo el proyecto.
 
 ## Uso
 
-Requiere credenciales de aplicación apuntando al proyecto correcto:
+### Primera vez: bootstrap manual
+
+Es obligatorio que sea local: crea la identidad que CI usará después, así que
+no puede ejecutarse desde CI.
 
 ```bash
 gcloud auth application-default login
 gcloud auth application-default set-quota-project alejoavila-web
+
+cd envs/bootstrap
+terraform init
+terraform apply
 ```
+
+De sus salidas sale `runtime_service_account_email` para `envs/prod`.
+
+### Después: la capa de aplicación
+
+En cada PR corre `plan` y se publica como comentario. Al mezclar a `master`
+corre `apply`, detenido por el environment `infraestructura` hasta que alguien
+lo aprueba.
+
+Para aplicarla a mano:
 
 ```bash
 cd envs/prod
 terraform init
-terraform plan
 terraform apply
 ```
 
-El estado vive en `gs://alejoavila-web-tfstate`, con versionado activo y acceso
-público bloqueado.
+## Configuración requerida en GitHub
+
+- Environment **`infraestructura`** con revisores requeridos. Es la compuerta
+  humana antes de que algo toque la infraestructura real.
+- Protección de la rama `master`: exigir pull request, exigir que pasen los
+  checks, bloquear force-push.
 
 ## Lo que NO gestiona Terraform
 
-Creado en el bootstrap y fuera del ciclo de vida de este código:
+Creado en el bootstrap manual y fuera del ciclo de vida de este código:
 
 - El proyecto `alejoavila-web` y su vínculo de facturación
 - El bucket de estado `alejoavila-web-tfstate`
 - La alerta de presupuesto
 - La habilitación inicial de APIs
 - Los valores de los secretos
-
-## Salidas
-
-| Salida | Para qué |
-|---|---|
-| `workload_identity_provider` | Campo del mismo nombre en `google-github-actions/auth` |
-| `deployer_service_account` | Campo `service_account` en esa misma acción |
-| `api_url` | URL de Cloud Run |
-| `api_service_name` | Destino del rewrite de Firebase Hosting |
-| `artifact_repository` | Destino de `docker push` |

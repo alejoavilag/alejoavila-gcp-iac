@@ -1,0 +1,4 @@
+project_id     = "alejoavila-web"
+region         = "us-east1"
+github_owner   = "alejoavilag"
+tfstate_bucket = "alejoavila-web-tfstate"

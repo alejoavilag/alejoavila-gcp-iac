@@ -1,8 +1,25 @@
+locals {
+  # Producto cartesiano de cuenta x repositorio, para crear un binding por par.
+  sa_repo_pairs = merge([
+    for sa_key, sa in var.service_accounts : {
+      for repo in sa.repositories :
+      "${sa_key}|${repo}" => { sa_key = sa_key, repo = repo }
+    }
+  ]...)
+
+  sa_role_pairs = merge([
+    for sa_key, sa in var.service_accounts : {
+      for role in sa.roles :
+      "${sa_key}|${role}" => { sa_key = sa_key, role = role }
+    }
+  ]...)
+}
+
 resource "google_iam_workload_identity_pool" "github" {
   project                   = var.project_id
   workload_identity_pool_id = var.pool_id
   display_name              = "GitHub Actions"
-  description               = "Federacion de identidad para despliegues sin llaves de larga vida"
+  description               = "Federacion de identidad para CI sin llaves de larga vida"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
@@ -18,9 +35,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.ref"              = "assertion.ref"
   }
 
-  # Sin esta condicion, el flujo OIDC de CUALQUIER repositorio de GitHub en el
-  # mundo podria pedir credenciales de este proyecto. Es el control de seguridad
-  # central del modulo, no una optimizacion.
+  # Primer filtro. Sin esta condicion, el flujo OIDC de CUALQUIER repositorio de
+  # GitHub en el mundo podria pedir credenciales de este proyecto.
   attribute_condition = "assertion.repository_owner == '${var.github_owner}'"
 
   oidc {
@@ -28,27 +44,29 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   }
 }
 
-resource "google_service_account" "deployer" {
+resource "google_service_account" "ci" {
+  for_each = var.service_accounts
+
   project      = var.project_id
-  account_id   = var.service_account_id
-  display_name = "Despliegues desde GitHub Actions"
-  description  = "Suplantada por GitHub Actions via OIDC. No tiene llaves."
+  account_id   = each.key
+  display_name = each.value.display_name
+  description  = each.value.description
 }
 
-# Acota la suplantacion a los repositorios listados. La condicion del proveedor
-# filtra por duenio; esto filtra por repositorio concreto.
+# Segundo filtro, el que de verdad acota: solo los repositorios listados para
+# cada cuenta pueden suplantarla. Google lo verifica, no GitHub.
 resource "google_service_account_iam_member" "workload_identity_user" {
-  for_each = toset(var.allowed_repositories)
+  for_each = local.sa_repo_pairs
 
-  service_account_id = google_service_account.deployer.name
+  service_account_id = google_service_account.ci[each.value.sa_key].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${each.value}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${each.value.repo}"
 }
 
-resource "google_project_iam_member" "deployer" {
-  for_each = toset(var.deployer_roles)
+resource "google_project_iam_member" "ci" {
+  for_each = local.sa_role_pairs
 
   project = var.project_id
-  role    = each.value
-  member  = "serviceAccount:${google_service_account.deployer.email}"
+  role    = each.value.role
+  member  = "serviceAccount:${google_service_account.ci[each.value.sa_key].email}"
 }

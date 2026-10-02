@@ -13,6 +13,21 @@ variable "service_name" {
   type        = string
 }
 
+variable "runtime_service_account_email" {
+  description = "Identidad con la que corre el contenedor. Se crea en la capa de bootstrap, no aqui: crearla requeriria que CI pudiera administrar cuentas de servicio."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@]+@[^.]+\\.iam\\.gserviceaccount\\.com$", var.runtime_service_account_email))
+    error_message = "Debe ser el correo de una cuenta de servicio de GCP."
+  }
+
+  validation {
+    condition     = !can(regex("^[0-9]+-compute@developer\\.gserviceaccount\\.com$", var.runtime_service_account_email))
+    error_message = "No usar la cuenta de servicio por defecto de Compute: trae permisos de editor sobre todo el proyecto."
+  }
+}
+
 variable "repository_id" {
   description = "Nombre del repositorio de Artifact Registry"
   type        = string

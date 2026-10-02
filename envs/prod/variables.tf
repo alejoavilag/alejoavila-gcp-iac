@@ -15,14 +15,9 @@ variable "firestore_location" {
   default     = "us-east1"
 }
 
-variable "github_owner" {
-  description = "Cuenta de GitHub autorizada a desplegar"
+variable "runtime_service_account_email" {
+  description = "Cuenta de ejecucion del contenedor. Sale de la salida api_runtime_service_account de envs/bootstrap."
   type        = string
-}
-
-variable "allowed_repositories" {
-  description = "Repositorios autorizados a suplantar la cuenta de despliegue"
-  type        = list(string)
 }
 
 variable "max_instances" {

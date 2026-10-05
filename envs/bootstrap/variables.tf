@@ -40,3 +40,19 @@ variable "hosting_site_id" {
     error_message = "Must be 3 to 30 characters, lowercase letters, digits and hyphens only, not starting or ending with a hyphen."
   }
 }
+
+variable "custom_domain" {
+  description = "Apex domain to attach to the Hosting site, without protocol or www subdomain. Empty leaves the site on its default URL."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.custom_domain == "" || can(regex("^[a-z0-9][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$", var.custom_domain))
+    error_message = "Use a bare domain such as example.com, with no protocol, port or path."
+  }
+
+  validation {
+    condition     = !startswith(var.custom_domain, "www.")
+    error_message = "Set the apex domain: the www subdomain is attached automatically as a redirect to it."
+  }
+}

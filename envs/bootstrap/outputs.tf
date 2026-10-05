@@ -27,3 +27,32 @@ output "hosting_default_url" {
   description = "Default site URL, before attaching a custom domain"
   value       = google_firebase_hosting_site.portfolio.default_url
 }
+
+output "custom_domain" {
+  description = "Apex domain attached to the Hosting site, empty when none is configured"
+  value       = var.custom_domain
+}
+
+output "custom_domain_dns_records" {
+  description = "Records to create at the registrar. Read desired[].records: every entry needs its type and rdata copied verbatim."
+  value = {
+    apex = try(google_firebase_hosting_custom_domain.apex[0].required_dns_updates, [])
+    www  = try(google_firebase_hosting_custom_domain.www[0].required_dns_updates, [])
+  }
+}
+
+output "custom_domain_status" {
+  description = "Verification and serving state of the custom domain, refreshed on every plan"
+  value = {
+    apex = try({
+      host      = google_firebase_hosting_custom_domain.apex[0].host_state
+      ownership = google_firebase_hosting_custom_domain.apex[0].ownership_state
+      issues    = google_firebase_hosting_custom_domain.apex[0].issues
+    }, null)
+    www = try({
+      host      = google_firebase_hosting_custom_domain.www[0].host_state
+      ownership = google_firebase_hosting_custom_domain.www[0].ownership_state
+      issues    = google_firebase_hosting_custom_domain.www[0].issues
+    }, null)
+  }
+}

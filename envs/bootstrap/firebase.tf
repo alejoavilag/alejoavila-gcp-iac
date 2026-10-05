@@ -14,3 +14,25 @@ resource "google_firebase_hosting_site" "portfolio" {
 
   depends_on = [google_firebase_project.default]
 }
+
+resource "google_firebase_hosting_custom_domain" "apex" {
+  count = var.custom_domain == "" ? 0 : 1
+
+  provider              = google-beta
+  project               = var.project_id
+  site_id               = google_firebase_hosting_site.portfolio.site_id
+  custom_domain         = var.custom_domain
+  cert_preference       = "GROUPED"
+  wait_dns_verification = false
+}
+
+resource "google_firebase_hosting_custom_domain" "www" {
+  count = var.custom_domain == "" ? 0 : 1
+
+  provider              = google-beta
+  project               = var.project_id
+  site_id               = google_firebase_hosting_site.portfolio.site_id
+  custom_domain         = "www.${var.custom_domain}"
+  redirect_target       = var.custom_domain
+  wait_dns_verification = false
+}

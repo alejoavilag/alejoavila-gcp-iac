@@ -36,3 +36,22 @@ resource "google_firebase_hosting_custom_domain" "www" {
   redirect_target       = var.custom_domain
   wait_dns_verification = false
 }
+
+resource "google_firebase_hosting_site" "widgets" {
+  provider = google-beta
+  project  = var.project_id
+  site_id  = var.widgets_site_id
+
+  depends_on = [google_firebase_project.default]
+}
+
+resource "google_firebase_hosting_custom_domain" "widgets" {
+  count = var.custom_domain == "" ? 0 : 1
+
+  provider              = google-beta
+  project               = var.project_id
+  site_id               = google_firebase_hosting_site.widgets.site_id
+  custom_domain         = "${var.widgets_subdomain}.${var.custom_domain}"
+  cert_preference       = "GROUPED"
+  wait_dns_verification = false
+}

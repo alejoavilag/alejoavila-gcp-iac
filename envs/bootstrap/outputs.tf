@@ -56,3 +56,32 @@ output "custom_domain_status" {
     }, null)
   }
 }
+
+output "widgets_site_id" {
+  description = "Firebase Hosting site the widget deploys to"
+  value       = google_firebase_hosting_site.widgets.site_id
+}
+
+output "widgets_default_url" {
+  description = "Default widgets site URL, usable before the subdomain resolves"
+  value       = google_firebase_hosting_site.widgets.default_url
+}
+
+output "widgets_domain" {
+  description = "Subdomain that serves the widgets, empty when no custom domain is configured"
+  value       = try(google_firebase_hosting_custom_domain.widgets[0].custom_domain, "")
+}
+
+output "widgets_domain_dns_records" {
+  description = "Records to create at the registrar for the widgets subdomain"
+  value       = try(google_firebase_hosting_custom_domain.widgets[0].required_dns_updates, [])
+}
+
+output "widgets_domain_status" {
+  description = "Verification and serving state of the widgets subdomain"
+  value = try({
+    host      = google_firebase_hosting_custom_domain.widgets[0].host_state
+    ownership = google_firebase_hosting_custom_domain.widgets[0].ownership_state
+    issues    = google_firebase_hosting_custom_domain.widgets[0].issues
+  }, null)
+}

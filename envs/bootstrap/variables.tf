@@ -56,3 +56,30 @@ variable "custom_domain" {
     error_message = "Set the apex domain: the www subdomain is attached automatically as a redirect to it."
   }
 }
+
+variable "widgets_site_id" {
+  description = "Firebase Hosting site that serves the runtime widgets, kept separate because a deploy replaces a whole site."
+  type        = string
+  default     = "alejoavila-widgets"
+
+  validation {
+    condition     = var.widgets_site_id != var.hosting_site_id
+    error_message = "The widgets site must differ from the shell site: sharing one would make each deploy erase the other."
+  }
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$", var.widgets_site_id))
+    error_message = "Must be 3 to 30 characters, lowercase letters, digits and hyphens only, not starting or ending with a hyphen."
+  }
+}
+
+variable "widgets_subdomain" {
+  description = "Label prefixed to the apex domain for the widgets site, attached with a CNAME."
+  type        = string
+  default     = "widgets"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$", var.widgets_subdomain))
+    error_message = "Must be a single DNS label: lowercase letters, digits and hyphens, not starting or ending with a hyphen."
+  }
+}
